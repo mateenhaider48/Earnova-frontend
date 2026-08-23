@@ -957,7 +957,7 @@ export default function WithdrawSection({
               }}
             >
              {currencySymbol} {" "}
-              {Number(balance).toFixed(3)}
+              {Number(balance - user?.lockedSubscriptionAmount).toFixed(0)}
             </h2>
           </div>
         )}

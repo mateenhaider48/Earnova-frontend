@@ -1274,15 +1274,15 @@ export default function DepositSection({
                   textColor,
               }}
             >
-              {currencySign} {" "}
+               {currencySign === "$"?"":"Rs"}{" "}
               {Number(
                 balance,
               ).toLocaleString(
                 undefined,
                 {
-                  maximumFractionDigits: 2,
+                  maximumFractionDigits: 0,
                 },
-              )}
+              )}     {currencySign === "$"?"$":""}
             </h2>
           </div>
         )}

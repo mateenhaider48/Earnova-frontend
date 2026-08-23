@@ -90,8 +90,13 @@ type SubscriptionCheck = {
 COMPONENT 
 ============================================================ 
 */
-
-export default function SubscriptionSection({ user }: { user: any }) {
+export default function SubscriptionSection({
+  user,
+  currency,
+}: {
+  user: any;
+  currency: any;
+}) {
   const { settings } = useUserTheme();
 
   const router = useRouter();
@@ -774,7 +779,7 @@ export default function SubscriptionSection({ user }: { user: any }) {
               color: settings.textColor,
             }}
           >
-            {formatMoney(availableBalance)}$
+           {currency === "PKR" ? "Rs": ""} {availableBalance.toFixed(0)}  {currency === "PKR" ? "": "$"}
           </h2>
         </div>
 
@@ -1080,7 +1085,7 @@ export default function SubscriptionSection({ user }: { user: any }) {
             {/* ================================================== 
                   PLAN INFO 
               ================================================== */}
-            {upgradeInfo?.currentPlanPrice > selectedPlan.amount ? (
+            {(upgradeInfo?.currentPlanPrice ?? 0) > selectedPlan.amount ? (
               <>
                 {upgradeInfo?.hasActivePlan && (
                   <div

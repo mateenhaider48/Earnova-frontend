@@ -67,8 +67,10 @@ COMPONENT
 
 export default function AdsSection({
   user,
+  currency,
 }: {
   user: any;
+  currency:any;
 }) {
   /*
   ============================================================
@@ -1231,7 +1233,7 @@ export default function AdsSection({
                 textColor,
             }}
           >
-            {localBalance}$
+               {currency === "PKR"?"Rs":""} {localBalance.toFixed(0)}    {currency === "USD"?"$":""}
           </h2>
         </div>
 

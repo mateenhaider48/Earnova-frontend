@@ -1,0 +1,29 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Frontend to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/Earnova-frontend
+
+            git pull origin main
+
+            npm install
+
+            npm run build
+
+            pm2 restart earnova-frontend
+
+            pm2 save

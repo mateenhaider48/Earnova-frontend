@@ -14,6 +14,11 @@ interface Tutorial {
   mediaType: "image" | "video";
 }
 
+interface CompanyAds {
+  _id: string;
+  mediaUrl: string;
+}
+
 /*
 ============================================================
 SAFE RESPONSE PARSER
@@ -47,6 +52,8 @@ export default function TutorialAdmin() {
   const [tutorials, setTutorials] =
     useState<Tutorial[]>([]);
 
+  const [companyAds, setCompanyAds] =
+    useState<CompanyAds[]>([]);
   const [title, setTitle] =
     useState("");
 
@@ -71,7 +78,7 @@ export default function TutorialAdmin() {
   const loadTutorials = async () => {
     try {
       const res = await fetch(
-        `${API_URL}/api/admin/get-all`,
+        `${API_URL}/api/admin/get-all-tutorials`,
         {
           method: "GET",
           cache: "no-store",
@@ -112,6 +119,50 @@ export default function TutorialAdmin() {
     }
   };
 
+    const loadCompanyAds = async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/get-companyAd`,
+        {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const data =
+        await getResponseData(res);
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message ||
+            data?.error ||
+            `Failed to load tutorials (${res.status})`
+        );
+      }
+
+      setCompanyAds(
+        Array.isArray(data?.data)
+          ? data.data
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Load tutorials error:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to load tutorials."
+      );
+    }
+  };
+
   /*
   ============================================================
   INITIAL LOAD
@@ -120,6 +171,7 @@ export default function TutorialAdmin() {
 
   useEffect(() => {
     loadTutorials();
+    loadCompanyAds();
   }, []);
 
   /*
@@ -313,6 +365,7 @@ export default function TutorialAdmin() {
     );
   };
 
+
   /*
   ============================================================
   DELETE
@@ -383,6 +436,138 @@ export default function TutorialAdmin() {
     }
   };
 
+    const handleDeleteAd = async (
+    id: string
+  ) => {
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this Ad?"
+      );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      const res =
+        await fetch(
+          `${API_URL}/api/admin/delete-companyAd/${id}`,
+          {
+            method: "DELETE",
+
+            credentials: "include",
+
+            headers: {
+              Accept:
+                "application/json",
+            },
+          }
+        );
+
+      const data =
+        await getResponseData(res);
+
+      console.log(
+        "Delete response:",
+        data
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message ||
+            data?.error ||
+            `Delete failed (${res.status})`
+        );
+      }
+
+      toast.success(
+        data?.message ||
+          "Tutorial deleted successfully."
+      );
+
+      await loadTutorials();
+    } catch (error) {
+      console.error(
+        "Delete tutorial error:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Delete failed."
+      );
+    }
+  };
+
+   const [image, setImage] = useState<File | null>(null);
+
+  
+    const handleUpload = async () => {
+      if (!image) {
+        toast.error("Please select an image");
+        return;
+      }
+  
+      try {
+        setLoading(true);
+  
+        const formData = new FormData();
+  
+        // IMPORTANT:
+        // backend upload.single("image") hai
+        formData.append("image", image);
+  
+        const response = await fetch(
+          `${API_URL}/api/admin/create-companyAd`,
+          {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          }
+        );
+  
+        const data = await response.json();
+  
+        if (!response.ok) {
+          throw new Error(
+            data?.message || "Failed to upload image"
+          );
+        }
+  
+        toast.success(
+          data?.message ||
+            "Income image uploaded successfully"
+        );
+  
+        setImage(null);
+  
+        // input reset
+        const input =
+          document.getElementById(
+            "income-image"
+          ) as HTMLInputElement;
+  
+        if (input) {
+          input.value = "";
+        }
+      } catch (error) {
+        console.error(
+          "Income Upload Error:",
+          error
+        );
+  
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to upload image"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+
   /*
   ============================================================
   RETURN
@@ -406,8 +591,101 @@ export default function TutorialAdmin() {
           },
         }}
       />
+       <div className="rounded-2xl bg-white p-5 shadow-sm">
+      <h2 className="mb-4 text-lg font-bold">
+        Upload Company Ads Images
+      </h2>
 
-      <div className="min-h-screen bg-gray-100 p-4 sm:p-8">
+      <input
+        id="income-image"
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          setImage(
+            e.target.files?.[0] || null
+          );
+        }}
+        className="mb-4 block w-full rounded-lg border p-3"
+      />
+
+      {image && (
+        <div className="mb-4">
+          <img
+            src={URL.createObjectURL(image)}
+            alt="Preview"
+            className="max-h-80 w-full rounded-xl object-contain"
+          />
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleUpload}
+        disabled={loading || !image}
+        className="w-full rounded-xl bg-purple-600 px-4 py-3 font-semibold text-white disabled:opacity-50"
+      >
+        {loading
+          ? "Uploading..."
+          : "Upload Company Ads Images"}
+      </button>
+        <div className="space-y-4 mt-3">
+            {companyAds.map(
+              (tutorial) => (
+                <div
+                  key={
+                    tutorial._id
+                  }
+                  className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow sm:flex-row"
+                >
+                  {/* MEDIA */}
+
+                  <div className="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:w-48">
+                  
+                      <img
+                        src={
+                          tutorial.mediaUrl
+                        }
+                        alt={
+                          tutorial.mediaUrl
+                        }
+                        className="h-full w-full object-cover"
+                      />
+                  </div>
+
+
+
+                  {/* ACTIONS */}
+
+                  <div className="flex shrink-0 gap-2 sm:flex-col">
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleDeleteAd(
+                          tutorial._id
+                        )
+                      }
+                      className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white transition hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* EMPTY */}
+
+            {companyAds.length ===
+              0 && (
+              <div className="rounded-2xl bg-white p-8 text-center text-gray-500">
+                No Ad found.
+              </div>
+            )}
+          </div> 
+    </div>
+
+      <div className="py-4 sm:py-8">
         <div className="mx-auto max-w-5xl">
 
           {/* =================================================

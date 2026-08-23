@@ -181,6 +181,7 @@ export default function UserDashboard() {
 
         try {
           data = text ? JSON.parse(text) : null;
+          console.log(data)
         } catch {
           throw new Error(
             `Server returned ${res.status} ${res.statusText}`
@@ -635,7 +636,9 @@ export default function UserDashboard() {
         {activeSection === "ads" && (
           <AdsSection
             user={u}
+            currency={currency}
           />
+
         )}
 
         {/* ==================================================
@@ -645,6 +648,7 @@ export default function UserDashboard() {
         {activeSection === "subscription" && (
           <BuySubscriptionSection
             user={u}
+            currency = {currency}
           />
         )}
 

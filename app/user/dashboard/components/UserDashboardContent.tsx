@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { useUserTheme } from "./UserThemeProvider";
+import toast from "react-hot-toast";
 
 interface Props {
   user: any;
@@ -31,33 +32,73 @@ interface Props {
       | "support"
       | "tutorials"
       | "income"
-      | "profile"
+      | "profile",
   ) => void;
 }
+interface CompanyAds {
+  _id: string;
+  image: string;
+}
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const FRONTEND_URL= process.env.FRONTEND_URL || "http://localhost:3000"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 export default function UserDashboardContent({
   user,
   currency,
   setActiveSection,
 }: Props) {
   const { settings } = useUserTheme();
-
+  const [companyAds ,setCompanyAds] = useState<CompanyAds[]>([])
   /*
   ============================================================
   TEAM / BANNER IMAGES
   ============================================================
   */
 
-  const teamImages = [
-    "/images/image.png",
-    "/images/plan.jpeg",
-    "/images/plan2.jpeg",
-    "/images/jazzcash.jpg",
-    "/images/background.png",
-  ];
+      const loadCompanyAds = async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/user/get-companyAd`,
+        {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message ||
+            data?.error ||
+            `Failed to load tutorials (${res.status})`
+        );
+      }
+
+      setCompanyAds(
+        Array.isArray(data?.data)
+          ? data.data
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Load tutorials error:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to load tutorials."
+      );
+    }
+  };
+
 
   /*
   ============================================================
@@ -69,28 +110,32 @@ export default function UserDashboardContent({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [currentTeamIndex, setCurrentTeamIndex] =
-    useState(0);
+  const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
 
   /*
   ============================================================
   TEAM IMAGE SLIDER
   ============================================================
   */
+useEffect(() => {
+  loadCompanyAds();
+}, []);
 
-  useEffect(() => {
-    if (!teamImages.length) return;
+useEffect(() => {
+  if (companyAds.length <= 1) return;
 
-    const interval = setInterval(() => {
-      setCurrentTeamIndex((prev) =>
-        prev === teamImages.length - 1
-          ? 0
-          : prev + 1
-      );
-    }, 3000);
+  const interval = setInterval(() => {
+    setCurrentTeamIndex((prev) => {
+      if (prev >= companyAds.length - 1) {
+        return 0;
+      }
 
-    return () => clearInterval(interval);
-  }, []);
+      return prev + 1;
+    });
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [companyAds.length]);
 
   /*
   ============================================================
@@ -111,48 +156,33 @@ export default function UserDashboardContent({
         setLoading(true);
         setError(null);
 
-        const res = await fetch(
-          `${API_URL}/api/user/get-me`,
-          {
-            method: "GET",
+        const res = await fetch(`${API_URL}/api/user/get-me`, {
+          method: "GET",
 
-            credentials: "include",
+          credentials: "include",
 
-            headers: {
-              Accept: "application/json",
-            },
+          headers: {
+            Accept: "application/json",
+          },
 
-            cache: "no-store",
-          }
-        );
+          cache: "no-store",
+        });
 
-        const contentType =
-          res.headers.get("content-type");
+        const contentType = res.headers.get("content-type");
 
-        if (
-          !contentType
-            ?.toLowerCase()
-            .includes("application/json")
-        ) {
+        if (!contentType?.toLowerCase().includes("application/json")) {
           const text = await res.text();
 
-          console.error(
-            "get-me returned non JSON:",
-            text
-          );
+          console.error("get-me returned non JSON:", text);
 
-          throw new Error(
-            `Server returned ${res.status} ${res.statusText}`
-          );
+          throw new Error(`Server returned ${res.status} ${res.statusText}`);
         }
 
         const data = await res.json();
 
         if (!res.ok) {
           throw new Error(
-            data?.message ||
-              data?.error ||
-              "Failed to fetch user"
+            data?.message || data?.error || "Failed to fetch user",
           );
         }
 
@@ -168,22 +198,13 @@ export default function UserDashboardContent({
           ------------------------------------------------------
           */
 
-          setFetched(
-            data?.data ?? null
-          );
+          setFetched(data?.data ?? null);
         }
       } catch (err) {
         if (!cancelled) {
-          console.error(
-            "loadMe error:",
-            err
-          );
+          console.error("loadMe error:", err);
 
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to fetch user"
-          );
+          setError(err instanceof Error ? err.message : "Failed to fetch user");
         }
       } finally {
         if (!cancelled) {
@@ -216,24 +237,15 @@ export default function UserDashboardContent({
   ============================================================
   */
 
-  const userName =
-    u?.name || "User";
+  const userName = u?.name || "User";
 
-  const balance =
-    Number(u?.balance ?? 0);
+  const balance = Number(u?.balance ?? 0);
 
-  const earning =
-    Number(u?.earning ?? 0);
+  const earning = Number(u?.earning ?? 0);
 
-  const adsWatched =
-    Number(
-      u?.adsWatched ??
-        u?.watchedInCurrentCycle ??
-        0
-    );
+  const adsWatched = Number(u?.adsWatched ?? u?.watchedInCurrentCycle ?? 0);
 
-  const subscription =
-    u?.subscription;
+  const subscription = u?.subscription;
 
   /*
   ============================================================
@@ -244,15 +256,9 @@ export default function UserDashboardContent({
   const planName =
     typeof subscription === "object"
       ? subscription?.planName
-      : u?.subscription?.planName ||
-        u?.planName ||
-        null;
+      : u?.subscription?.planName || u?.planName || null;
 
-  const hasSubscription =
-    Boolean(
-      subscription ||
-        planName
-    );
+  const hasSubscription = Boolean(subscription || planName);
 
   /*
   ============================================================
@@ -260,33 +266,15 @@ export default function UserDashboardContent({
   ============================================================
   */
 
-  const todayEarning =
-    Number(
-      u?.todayEarning ??
-        u?.todaysEarning ??
-        0
-    );
+  const todayEarning = Number(u?.todayEarning ?? u?.todaysEarning ?? 0);
 
-  const yesterdayEarning =
-    Number(
-      u?.yesterdayEarning ??
-        u?.yesterdaysEarning ??
-        0
-    );
+  const yesterdayEarning = Number(
+    u?.yesterdayEarning ?? u?.yesterdaysEarning ?? 0,
+  );
 
-  const weeklyEarning =
-    Number(
-      u?.weeklyEarning ??
-        u?.weekEarning ??
-        0
-    );
+  const weeklyEarning = Number(u?.weeklyEarning ?? u?.weekEarning ?? 0);
 
-  const monthlyEarning =
-    Number(
-      u?.monthlyEarning ??
-        u?.monthEarning ??
-        0
-    );
+  const monthlyEarning = Number(u?.monthlyEarning ?? u?.monthEarning ?? 0);
 
   /*
   ============================================================
@@ -295,12 +283,8 @@ export default function UserDashboardContent({
   */
 
   const referralLink =
-    u?.referralLink ||
-    u?.refLink ||
-    u?.referralCode
-      ? u?.referralLink ||
-        u?.reflink ||
-        u?.referralCode
+    u?.referralLink || u?.refLink || u?.referralCode
+      ? u?.referralLink || u?.reflink || u?.referralCode
       : "";
 
   /*
@@ -309,71 +293,52 @@ export default function UserDashboardContent({
   ============================================================
   */
 
- const copyReferralLink = async () => {
-  if (!u?.reflink) return;
+  const copyReferralLink = async () => {
+    if (!u?.reflink) return;
 
-  const text = `${FRONTEND_URL}/register?ref=${String(u?.reflink)}`;
+    const text = `${FRONTEND_URL}/register?ref=${String(u?.reflink)}`;
 
-  try {
-    // Modern Clipboard API
-    if (
-      navigator.clipboard &&
-      window.isSecureContext
-    ) {
-      await navigator.clipboard.writeText(text);
-      return;
-    }
-
-    // Fallback
-    const textarea =
-      document.createElement("textarea");
-
-    textarea.value = text;
-
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    textarea.style.top = "0";
-    textarea.style.opacity = "0";
-
-    document.body.appendChild(textarea);
-
-    textarea.focus();
-    textarea.select();
-    textarea.setSelectionRange(
-      0,
-      textarea.value.length
-    );
-
-    const copied =
-      document.execCommand("copy");
-
-    document.body.removeChild(textarea);
-
-    if (!copied) {
-      throw new Error(
-        "Copy command failed"
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Copy referral link error:",
-      error
-    );
-
-    // Last fallback: user ko manually copy karne do
     try {
-      window.prompt(
-        "Copy your referral link:",
-        text
-      );
-    } catch (fallbackError) {
-      console.error(
-        "Copy fallback error:",
-        fallbackError
-      );
+      // Modern Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+
+      // Fallback
+      const textarea = document.createElement("textarea");
+
+      textarea.value = text;
+
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      textarea.style.top = "0";
+      textarea.style.opacity = "0";
+
+      document.body.appendChild(textarea);
+
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      const copied = document.execCommand("copy");
+
+      document.body.removeChild(textarea);
+
+      if (!copied) {
+        throw new Error("Copy command failed");
+      }
+    } catch (error) {
+      console.error("Copy referral link error:", error);
+
+      // Last fallback: user ko manually copy karne do
+      try {
+        window.prompt("Copy your referral link:", text);
+      } catch (fallbackError) {
+        console.error("Copy fallback error:", fallbackError);
+      }
     }
-  }
-};
+  };
   /*
   ============================================================
   RETURN
@@ -384,12 +349,10 @@ export default function UserDashboardContent({
     <div
       className="min-h-screen overflow-y-auto"
       style={{
-        backgroundColor:
-          "var(--user-background)",
+        backgroundColor: "var(--user-background)",
       }}
     >
       <div className="space-y-2 p-4 sm:p-6 lg:p-8">
-
         {/* ==================================================
             ACCOUNT REFRESH STATUS
         ================================================== */}
@@ -402,12 +365,9 @@ export default function UserDashboardContent({
                 ? "rgba(239,68,68,0.15)"
                 : "rgba(234,179,8,0.15)",
 
-              color: error
-                ? "#dc2626"
-                : "#ca8a04",
+              color: error ? "#dc2626" : "#ca8a04",
 
-              borderRadius:
-                "var(--user-radius)",
+              borderRadius: "var(--user-radius)",
             }}
           >
             {loading
@@ -422,20 +382,16 @@ export default function UserDashboardContent({
 
         <div className="overflow-hidden rounded-2xl bg-white">
           <div className="relative flex justify-center">
-            {teamImages.map(
-              (image, index) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`Team ${index + 1}`}
-                  className={`team-image h-50 w-full ${
-                    index === currentTeamIndex
-                      ? "active"
-                      : ""
-                  }`}
-                />
-              )
-            )}
+            {companyAds.map((url, index) => (
+              <img
+                key={index}
+                src={url.image}
+                alt={`Team ${index + 1}`}
+                className={`team-image h-50 w-full ${
+                  index === currentTeamIndex ? "active" : ""
+                }`}
+              />
+            ))}
           </div>
         </div>
 
@@ -444,33 +400,35 @@ export default function UserDashboardContent({
         ================================================== */}
 
         <section>
-          <div className="flex gap-4 rounded-xl border-1 bg-white p-2">
+          <div className="flex items-center justify-between rounded-xl border bg-white p-1 pr-2">
+            <div className="flex gap-4  ">
+              <div>
+                <img
+                  className="h-16 w-16 rounded-full"
+                  src="/images/avatar.jpg"
+                  alt="User"
+                />
+              </div>
 
-            <div>
-              <img
-                className="h-8 w-8 rounded-full"
-                src="/images/jazzcash.jpg"
-                alt="User"
-              />
+              <h2 className="mt-4 text-xl font-bold text-black sm:text-3xl">
+                {userName}
+              </h2>
             </div>
-
-            <h2 className="mt-0.5 text-xl font-bold text-black sm:text-3xl">
-              {userName}
-            </h2>
-
             {!hasSubscription && (
               <p className="mt-1 h-5 w-auto rounded-xl border-1 border-black bg-gradient-to-r from-[#7C60F4] to-[#E749A0] px-1 text-xs text-white">
                 No Plan
               </p>
             )}
-             {planName && (
-             <p className="mt-1 h-5 w-auto rounded-xl border-1 border-black bg-gradient-to-r from-[#7C60F4] to-[#E749A0] px-1 text-xs text-white">
-                {planName}
+            {planName && (
+              <p className="">
+                <img
+                  src={user?.subscription?.activePlanImage}
+                  alt="plan"
+                  className="w-12 h-12 rounded-xl"
+                />
               </p>
-          )}
+            )}
           </div>
-
-         
         </section>
 
         {/* ==================================================
@@ -481,8 +439,8 @@ export default function UserDashboardContent({
           <p className="text-lg font-bold text-red-700">
             Balance:{" "}
             <span className="text-center font-bold sm:text-3xl">
-              {balance.toFixed(2)}{" "}
-              {currency}
+              {currency === "PKR" ? "Rs" : ""} {balance.toFixed(0)}{" "}
+              {currency === "PKR" ? "" : "$"}
             </span>
           </p>
         </div>
@@ -492,22 +450,17 @@ export default function UserDashboardContent({
         ================================================== */}
 
         <div className="grid grid-cols-4 rounded-lg bg-white xl:grid-cols-4">
-
           <StatCard
             title="Deposit"
             icon={Wallet}
-            onClick={() =>
-              setActiveSection("earnings")
-            }
+            onClick={() => setActiveSection("earnings")}
             colorIcon="#EEC835"
           />
 
           <StatCard
             title="Withdraw"
             icon={DollarSign}
-            onClick={() =>
-              setActiveSection("withdraw")
-            }
+            onClick={() => setActiveSection("withdraw")}
             colorIcon="#229CC1"
           />
 
@@ -515,23 +468,15 @@ export default function UserDashboardContent({
             title="Task"
             value={String(adsWatched)}
             icon={ListCheck}
-            onClick={() =>
-              setActiveSection("ads")
-            }
+            onClick={() => setActiveSection("ads")}
             colorIcon="#721cab"
           />
 
           <StatCard
             title="My Team"
-            value={
-              hasSubscription
-                ? "Active"
-                : "No Plan"
-            }
+            value={hasSubscription ? "Active" : "No Plan"}
             icon={Network}
-            onClick={() =>
-              setActiveSection("team")
-            }
+            onClick={() => setActiveSection("team")}
             colorIcon="#00B46A"
           />
 
@@ -539,28 +484,22 @@ export default function UserDashboardContent({
             title="Plan"
             value={planName || "No Plan"}
             icon={Package}
-            onClick={() =>
-              setActiveSection("subscription")
-            }
+            onClick={() => setActiveSection("subscription")}
             colorIcon="#188bf7"
           />
 
           <StatCard
-  title="Support"
-  icon={Phone}
-  onClick={() =>
-    setActiveSection("support")
-  }
-  colorIcon="#19dd9c"
-/>
+            title="Support"
+            icon={Phone}
+            onClick={() => setActiveSection("support")}
+            colorIcon="#19dd9c"
+          />
 
           <StatCard
             title="Youtube"
             value={String(adsWatched)}
             icon={FaYoutube}
-            onClick={() =>
-              setActiveSection("tutorials")
-            }
+            onClick={() => setActiveSection("tutorials")}
             colorIcon="#eb212b"
           />
 
@@ -568,12 +507,9 @@ export default function UserDashboardContent({
             title="Income"
             value={`${earning.toFixed(2)} ${currency}`}
             icon={FaTelegram}
-            onClick={() =>
-              setActiveSection("income")
-            }
+            onClick={() => setActiveSection("income")}
             colorIcon="#1c48c2"
           />
-
         </div>
 
         {/* ==================================================
@@ -581,7 +517,6 @@ export default function UserDashboardContent({
         ================================================== */}
 
         <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-2 xl:grid-cols-4">
-
           <CARDDesign
             day="Today's Earning"
             value={`${todayEarning.toFixed(2)} ${currency}`}
@@ -605,7 +540,6 @@ export default function UserDashboardContent({
             value={`${monthlyEarning.toFixed(2)} ${currency}`}
             colorBg="bg-blue-600"
           />
-
         </div>
 
         {/* ==================================================
@@ -613,18 +547,12 @@ export default function UserDashboardContent({
         ================================================== */}
 
         <div className="flex items-center rounded-xl bg-white text-center">
-
-          <p className="mx-auto p-1 text-xs">
-            Ref Link
-          </p>
+          <p className="mx-auto p-1 text-xs">Ref Link</p>
 
           <div className="flex items-center justify-center gap-2 p-1">
-
             <input
               type="text"
-              value={`${FRONTEND_URL}/register?ref=${String(
-                 u?.reflink || ""
-              )}`}
+              value={`${FRONTEND_URL}/register?ref=${String(u?.reflink || "")}`}
               readOnly
               placeholder="Reference link"
               className="h-8 rounded-md border-1 border-gray-300 px-2 text-center text-xs outline-none"
@@ -632,20 +560,238 @@ export default function UserDashboardContent({
 
             <button
               type="button"
-              onClick={
-                copyReferralLink
-              }
+              onClick={copyReferralLink}
               style={{
-                background:
-                  `linear-gradient(to right, ${settings.gradientStart}, ${settings.gradientEnd})`,
+                background: `linear-gradient(to right, ${settings.gradientStart}, ${settings.gradientEnd})`,
               }}
               className="flex h-8 w-8 items-center justify-center rounded-md border-1 text-white"
             >
               <CopyIcon size={20} />
             </button>
-
           </div>
         </div>
+        {/* ==================================================
+{/* ==================================================
+    WITHDRAWAL NOTIFICATION SLIDER
+================================================== */}
+<div className="mt-2 w-full  h-40 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  <div className="relative h-40 overflow-hidden">
+
+    <div className="withdrawal-track">
+
+      {/* CARD 1 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-lg">
+          💰
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Ali 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$50</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 2 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-lg">
+          💵
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Ahmed 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$100</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 3 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100 text-lg">
+          💎
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Usman 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$75</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 4 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg">
+          🤑
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Hamza 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$150</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 5 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-100 text-lg">
+          💸
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Hassan 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$200</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+         <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-lg">
+          💰
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Ali 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$50</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 2 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-lg">
+          💵
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Ahmed 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$100</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 3 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100 text-lg">
+          💎
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Usman 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$75</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 4 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 text-lg">
+          🤑
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Hamza 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$150</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+      {/* CARD 5 */}
+      <div className="withdrawal-item">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pink-100 text-lg">
+          💸
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-gray-800">
+            Congratulations Hassan 🎉
+          </p>
+
+          <p className="truncate text-[11px] text-gray-500">
+            You have withdrawn <span className="font-semibold text-green-600">$200</span>
+          </p>
+        </div>
+
+        <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-[10px] font-medium text-green-600">
+          Withdrawn
+        </span>
+      </div>
+
+
+    </div>
+  </div>
+</div>
 
       </div>
     </div>
@@ -656,35 +802,25 @@ export default function UserDashboardContent({
    STAT CARD
 ============================================================ */
 
-function StatCard({
-  title,
-  icon: Icon,
-  onClick,
-  colorIcon,
-}: any) {
+function StatCard({ title, icon: Icon, onClick, colorIcon }: any) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="p-1 text-left transition hover:-translate-y-0.5 hover:shadow-md"
       style={{
-        backgroundColor:
-          "var(--user-card)",
+        backgroundColor: "var(--user-card)",
 
-        borderRadius:
-          "var(--user-radius)",
+        borderRadius: "var(--user-radius)",
 
-        borderColor:
-          "rgba(0,0,0,0.08)",
+        borderColor: "rgba(0,0,0,0.08)",
       }}
     >
       <div className="text-center">
-
         <div
           className="mx-auto mb-1 flex h-10 w-10 items-center justify-center rounded-sm"
           style={{
-            backgroundColor:
-              colorIcon,
+            backgroundColor: colorIcon,
 
             color: "white",
           }}
@@ -692,10 +828,7 @@ function StatCard({
           <Icon size={26} />
         </div>
 
-        <p className="text-xs font-medium text-gray-500">
-          {title}
-        </p>
-
+        <p className="text-xs font-medium text-gray-500">{title}</p>
       </div>
     </button>
   );
@@ -705,23 +838,16 @@ function StatCard({
    DASHBOARD CARD
 ============================================================ */
 
-function DashboardCard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardCard({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="border p-5 shadow-sm sm:p-6"
       style={{
-        backgroundColor:
-          "var(--user-card)",
+        backgroundColor: "var(--user-card)",
 
-        borderRadius:
-          "var(--user-radius)",
+        borderRadius: "var(--user-radius)",
 
-        borderColor:
-          "rgba(0,0,0,0.08)",
+        borderColor: "rgba(0,0,0,0.08)",
       }}
     >
       {children}
@@ -733,14 +859,9 @@ function DashboardCard({
    INFO ITEM
 ============================================================ */
 
-function InfoItem({
-  label,
-  value,
-  icon: Icon,
-}: any) {
+function InfoItem({ label, value, icon: Icon }: any) {
   return (
     <div className="rounded-xl bg-gray-50 p-4">
-
       <div className="flex items-center gap-2 text-xs text-gray-500">
         <Icon size={14} />
         {label}
@@ -749,13 +870,11 @@ function InfoItem({
       <p
         className="mt-2 truncate text-sm font-bold"
         style={{
-          color:
-            "var(--user-text)",
+          color: "var(--user-text)",
         }}
       >
         {value}
       </p>
-
     </div>
   );
 }
@@ -764,23 +883,12 @@ function InfoItem({
    EARNING CARD
 ============================================================ */
 
-export function CARDDesign({
-  day,
-  value,
-  icon: Icon,
-  colorBg,
-}: any) {
+export function CARDDesign({ day, value, icon: Icon, colorBg }: any) {
   return (
-    <div
-      className={`${colorBg} rounded-md p-1`}
-    >
-      <p className="text-center text-[10px] font-semibold text-white">
-        {day}
-      </p>
+    <div className={`${colorBg} rounded-md p-1`}>
+      <p className="text-center text-[10px] font-semibold text-white">{day}</p>
 
-      <p className="text-center text-sm text-white">
-        {value}
-      </p>
+      <p className="text-center text-sm text-white">{value}</p>
     </div>
   );
 }
