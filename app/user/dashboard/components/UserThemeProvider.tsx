@@ -107,7 +107,7 @@ const defaultSettings: SiteSettings = {
   BRAND
   */
 
-  siteName: "My Platform",
+  siteName: "",
   favicon: "",
 
   /*
@@ -245,7 +245,6 @@ export function UserThemeProvider({
 
         const data =
           await response.json();
-
         /*
         --------------------------------------------------------
         APPLY SETTINGS

@@ -43,8 +43,11 @@ COMPONENT
 
 export default function TeamSection({
   user,
+ currency
+
 }: {
   user: any;
+  currency:any;
 }) {
   const { settings } = useUserTheme();
 
@@ -642,7 +645,8 @@ export default function TeamSection({
                 </p>
 
                 <p className="text-lg font-bold text-white">
-                  500$
+                   {currency === "PKR" ? "Rs" : ""}{" "}500{" "}
+              {currency === "PKR" ? "" : "$"}
                 </p>
               </div>
             </div>
@@ -894,7 +898,7 @@ export default function TeamSection({
                   0 && (
                   <EmptyTeam
                     backgroundColor={
-                      backgroundColor
+                      "white"
                     }
                   />
                 )}

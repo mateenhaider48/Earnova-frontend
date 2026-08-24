@@ -3,11 +3,20 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import {
+  User,
+  LogOut,
+  Home,
+  ClipboardList,
+  Users,
+  Crown,
+  UserRound,
+} from "lucide-react";
 
 import { RootState } from "../../../redux/store";
 import { logout } from "../../../redux/slices/authSclice";
 
-import { UserThemeProvider } from "./components/UserThemeProvider";
+import { UserThemeProvider, useUserTheme } from "./components/UserThemeProvider";
 
 import UserDashboardContent from "./components/UserDashboardContent";
 import EarningsSection from "./components/DepositSection";
@@ -57,6 +66,19 @@ export default function UserDashboard() {
     (state: RootState) => state.auth
   );
 
+   const { settings } = useUserTheme();
+   const gradient =
+    `linear-gradient(
+      to right,
+      ${settings.gradientStart},
+      ${settings.gradientEnd}
+    )`;
+
+    const pillGradient = `linear-gradient(
+  135deg,
+  ${settings.gradientStart},
+  ${settings.gradientEnd}
+)`;
   /*
   ============================================================
   FRESH USER STATE
@@ -87,6 +109,15 @@ export default function UserDashboard() {
 
   const [currencyLoading, setCurrencyLoading] =
     useState<boolean>(true);
+
+  /*
+  ============================================================
+  USER MENU
+  ============================================================
+  */
+
+  const [showUserMenu, setShowUserMenu] =
+    useState<boolean>(false);
 
   /*
   ============================================================
@@ -123,6 +154,8 @@ export default function UserDashboard() {
   */
 
   const setActiveSection = (section: Section) => {
+    setShowUserMenu(false);
+
     router.push(`/user/dashboard?section=${section}`);
   };
 
@@ -181,7 +214,7 @@ export default function UserDashboard() {
 
         try {
           data = text ? JSON.parse(text) : null;
-          console.log(data)
+          console.log(data);
         } catch {
           throw new Error(
             `Server returned ${res.status} ${res.statusText}`
@@ -197,7 +230,8 @@ export default function UserDashboard() {
         if (res.status === 401 || res.status === 403) {
           console.log(
             "AUTH FAILED:",
-            data?.message || "User is not authenticated."
+            data?.message ||
+              "User is not authenticated."
           );
 
           /*
@@ -273,7 +307,9 @@ export default function UserDashboard() {
         */
 
         if (!freshUser) {
-          console.log("GET-ME SUCCESS BUT USER NOT FOUND");
+          console.log(
+            "GET-ME SUCCESS BUT USER NOT FOUND"
+          );
 
           dispatch(logout());
 
@@ -304,7 +340,10 @@ export default function UserDashboard() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("verifyUser error:", err);
+          console.error(
+            "verifyUser error:",
+            err
+          );
 
           /*
           ------------------------------------------------------
@@ -333,7 +372,11 @@ export default function UserDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, router, dispatch]);
+  }, [
+    isAuthenticated,
+    router,
+    dispatch,
+  ]);
 
   /*
   ============================================================
@@ -415,6 +458,51 @@ export default function UserDashboard() {
       cancelled = true;
     };
   }, []);
+
+  /*
+  ============================================================
+  LOGOUT
+  ============================================================
+  */
+
+  const handleLogout = () => {
+    /*
+    ----------------------------------------------------------
+    Close menu
+    ----------------------------------------------------------
+    */
+
+    setShowUserMenu(false);
+
+    /*
+    ----------------------------------------------------------
+    Redux logout
+    ----------------------------------------------------------
+    */
+
+    dispatch(logout());
+
+    /*
+    ----------------------------------------------------------
+    Clear old localStorage auth data
+    ----------------------------------------------------------
+    */
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("savedUser");
+      localStorage.removeItem("user");
+      localStorage.removeItem("auth");
+    }
+
+    /*
+    ----------------------------------------------------------
+    Redirect
+    ----------------------------------------------------------
+    */
+
+    router.replace("/login");
+  };
 
   /*
   ============================================================
@@ -511,7 +599,7 @@ export default function UserDashboard() {
       ===================================================== */}
 
       <header
-        className="fixed z-50 flex h-16 w-full items-center justify-between border-b px-4 sm:px-6 lg:px-8"
+        className="fixed z-50 flex h-16 w-full items-center justify-between rounded-b-[1rem] border-b px-4 sm:px-6 lg:px-8"
         style={{
           backgroundColor:
             "var(--user-header)",
@@ -543,20 +631,142 @@ export default function UserDashboard() {
 
         {/* USER */}
 
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold"
+        <div className="relative flex items-center gap-3">
+          {/* =================================================
+              USER AVATAR
+          ================================================= */}
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowUserMenu(
+                (prev) => !prev
+              )
+            }
+            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition hover:opacity-90"
             style={{
-              backgroundColor:
-                "var(--user-primary)",
+              background:gradient,
               color:
                 "var(--user-button-text)",
             }}
+            aria-label="Open user menu"
           >
             {u?.name
               ?.charAt(0)
               ?.toUpperCase() || "U"}
-          </div>
+          </button>
+
+          {/* =================================================
+              USER MENU
+          ================================================= */}
+
+          {showUserMenu && (
+            <div
+              className="absolute right-0 top-12 w-44 overflow-hidden border shadow-lg"
+              style={{
+                backgroundColor:
+                  "var(--user-card)",
+                borderColor:
+                  "var(--user-border)",
+                borderRadius:
+                  "var(--user-radius)",
+              }}
+            >
+              {/* USER NAME */}
+
+              <div
+                className="border-b flex gap-2  px-4 py-3"
+                style={{
+                  borderColor:
+                    "var(--user-border)",
+                }}
+              >
+                <img
+                  className="h-10 w-10 rounded-full"
+                  src="/images/avatar.jpg"
+                  alt="User"
+                /><div>
+                     <p
+                  className="truncate text-sm font-bold"
+                  style={{
+                    color:
+                      "var(--user-text)",
+                  }}
+                >
+                  {u?.name || "User"}
+                </p>
+                
+                <p
+                  className="mt-0.5 truncate text-xs"
+                  style={{
+                    color:
+                      "var(--user-text-secondary)",
+                  }}
+                >
+                  {u?.cellNo || ""}
+                </p>
+              </div>
+           
+
+              </div>
+
+              {/* PROFILE */}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveSection(
+                    "profile"
+                  )
+                }
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:opacity-80"
+                style={{
+                  color:
+                    "var(--user-text)",
+                }}
+              >
+                <User
+                  size={17}
+                  style={{
+                    color:
+                      "var(--user-primary)",
+                  }}
+                />
+
+                <span>
+                  Profile
+                </span>
+              </button>
+
+              {/* LOGOUT */}
+
+              <button
+                type="button"
+                onClick={
+                  handleLogout
+                }
+                className="flex w-full items-center gap-3 border-t px-4 py-3 text-left text-sm transition hover:opacity-80"
+                style={{
+                  color:
+                    "var(--user-text)",
+                  borderColor:
+                    "var(--user-border)",
+                }}
+              >
+                <LogOut
+                  size={17}
+                  style={{
+                    color:
+                      "var(--user-primary)",
+                  }}
+                />
+
+                <span>
+                  Logout
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -565,7 +775,7 @@ export default function UserDashboard() {
       ===================================================== */}
 
       <main
-        className="min-h-screen overflow-x-hidden overflow-y-auto pt-16 lg:pl-64"
+        className="min-h-screen overflow-x-hidden overflow-y-auto pt-16 pb-24 lg:pl-64"
         style={{
           backgroundColor:
             "var(--user-background)",
@@ -638,7 +848,6 @@ export default function UserDashboard() {
             user={u}
             currency={currency}
           />
-
         )}
 
         {/* ==================================================
@@ -648,7 +857,7 @@ export default function UserDashboard() {
         {activeSection === "subscription" && (
           <BuySubscriptionSection
             user={u}
-            currency = {currency}
+            currency={currency}
           />
         )}
 
@@ -683,6 +892,7 @@ export default function UserDashboard() {
         {activeSection === "team" && (
           <TeamSection
             user={u}
+            currency={currency}
           />
         )}
 
@@ -697,6 +907,81 @@ export default function UserDashboard() {
           />
         )}
       </main>
+
+{/* =====================================================
+    MOBILE BOTTOM NAVIGATION
+===================================================== */}
+
+<footer className="fixed bottom-0 left-0 z-50 w-full  sm:px-5">
+  <div
+    className="relative mx-auto flex h-[68px] w-full max-w-xl items-center rounded-t-[1rem] border px-2 backdrop-blur-2xl"
+    style={{
+      backgroundColor:
+        "color-mix(in srgb, var(--user-header) 82%, transparent)",
+      borderColor: "rgba(255,255,255,0.6)",
+      boxShadow:
+        "0 -6px 28px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.6)",
+    }}
+  >
+    {/* sliding active pill */}
+    <div
+  className="pointer-events-none absolute top-1/2 h-12 rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+  style={{
+    width: "calc((100% - 16px) / 5)",
+    left: `calc(8px + (100% - 16px) / 5 * ${
+      ["dashboard", "ads", "team", "subscription", "profile"].indexOf(activeSection)
+    })`,
+    transform: "translateY(-50%)",
+    background: pillGradient,
+    boxShadow: `0 6px 16px color-mix(in srgb, ${settings.gradientStart} 45%, transparent)`,
+  }}
+/>
+
+    {[
+      { key: "dashboard" as Section, label: "Home", Icon: Home },
+      { key: "ads" as Section, label: "Tasks", Icon: ClipboardList },
+      { key: "team" as Section, label: "Team", Icon: Users },
+      { key: "subscription" as Section, label: "VIP", Icon: Crown },
+      { key: "profile" as Section, label: "Me", Icon: UserRound },
+    ].map(({ key, label, Icon }) => {
+      const isActive = activeSection === key;
+
+      return (
+        <button
+          key={key}
+          type="button"
+          onClick={() => setActiveSection(key)}
+          className="group relative z-10 flex h-full flex-1 flex-col items-center justify-center gap-0.5 transition-transform duration-300 active:scale-90"
+        >
+          <Icon
+            size={21}
+            strokeWidth={isActive ? 2.4 : 1.9}
+            className="transition-all duration-300"
+            style={{
+              color: isActive
+                ? "var(--user-button-text)"
+                : "var(--user-text-secondary)",
+              transform: isActive ? "scale(1.05)" : "scale(1)",
+            }}
+          />
+
+          <span
+            className="text-[10.5px] transition-all duration-300"
+            style={{
+              color: isActive
+                ? "var(--user-button-text)"
+                : "var(--user-text-secondary)",
+              fontWeight: isActive ? 700 : 500,
+              opacity: isActive ? 1 : 0.85,
+            }}
+          >
+            {label}
+          </span>
+        </button>
+      );
+    })}
+  </div>
+</footer>
     </UserThemeProvider>
   );
 }

@@ -435,7 +435,7 @@ useEffect(() => {
             BALANCE
         ================================================== */}
 
-        <div className="flex items-center justify-center rounded-xl border-1 bg-white text-center">
+        <div className="flex items-center justify-center rounded-xl border-1 p-2 bg-white text-center">
           <p className="text-lg font-bold text-red-700">
             Balance:{" "}
             <span className="text-center font-bold sm:text-3xl">
@@ -449,7 +449,7 @@ useEffect(() => {
             MENU / STATS
         ================================================== */}
 
-        <div className="grid grid-cols-4 rounded-lg bg-white xl:grid-cols-4">
+        <div className="grid grid-cols-4 rounded-lg py-2 bg-white xl:grid-cols-4">
           <StatCard
             title="Deposit"
             icon={Wallet}
@@ -574,8 +574,8 @@ useEffect(() => {
 {/* ==================================================
     WITHDRAWAL NOTIFICATION SLIDER
 ================================================== */}
-<div className="mt-2 w-full  h-40 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-  <div className="relative h-40 overflow-hidden">
+<div className="mt-2 w-full  h-60 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+  <div className="relative h-60 overflow-hidden">
 
     <div className="withdrawal-track">
 
@@ -831,51 +831,6 @@ function StatCard({ title, icon: Icon, onClick, colorIcon }: any) {
         <p className="text-xs font-medium text-gray-500">{title}</p>
       </div>
     </button>
-  );
-}
-
-/* ============================================================
-   DASHBOARD CARD
-============================================================ */
-
-function DashboardCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="border p-5 shadow-sm sm:p-6"
-      style={{
-        backgroundColor: "var(--user-card)",
-
-        borderRadius: "var(--user-radius)",
-
-        borderColor: "rgba(0,0,0,0.08)",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* ============================================================
-   INFO ITEM
-============================================================ */
-
-function InfoItem({ label, value, icon: Icon }: any) {
-  return (
-    <div className="rounded-xl bg-gray-50 p-4">
-      <div className="flex items-center gap-2 text-xs text-gray-500">
-        <Icon size={14} />
-        {label}
-      </div>
-
-      <p
-        className="mt-2 truncate text-sm font-bold"
-        style={{
-          color: "var(--user-text)",
-        }}
-      >
-        {value}
-      </p>
-    </div>
   );
 }
 
